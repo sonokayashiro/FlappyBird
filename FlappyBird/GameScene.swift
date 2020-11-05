@@ -24,10 +24,15 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     //スコア用
     var score = 0
+    var itemscore = 0
+    var totalscore = 0
     var scoreLabelNode:SKLabelNode!
+    var itemScoreLabelNode:SKLabelNode!
+    var totalScoreLabelNode:SKLabelNode!
     var bestScoreLabelNode:SKLabelNode!
-    let userDefaults:UserDefaults = UserDefaults.standard
-    
+        let userDefaults:UserDefaults = UserDefaults.standard
+
+    let itemsound = SKAction.playSoundFileNamed("itemsound.mp3", waitForCompletion: true)
    
     
     // SKView上にシーンが表示されたときに呼ばれるメソッド
@@ -344,56 +349,56 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // SKPhysicsContactDelegateのメソッド。衝突したときに呼ばれる
     func didBegin(_ contact: SKPhysicsContact) {
+        totalscore = itemscore + score
+        print(totalscore)
+        
         //ゲームオーバーの時は何もしない
         if scrollNode.speed <= 0 {
             return
-        }
+        }// スコア用の物体と衝突した（壁を潜り抜けた）
         if (contact.bodyA.categoryBitMask & scoreCategory) == scoreCategory || (contact.bodyB.categoryBitMask & scoreCategory) == scoreCategory {
-            // スコア用の物体と衝突した（壁を潜り抜けた）
+            
             
             //スコアアップ
             print("ScoreUp")
             score += 1
+            totalscore = itemscore + score
             scoreLabelNode.text = "Score:\(score)"
+            totalScoreLabelNode.text = "TotalScore\(totalscore)"
             
             //ベストスコア更新か確認する
             var bestScore = userDefaults.integer(forKey: "BEST")
-            if score > bestScore {
-                bestScore = score
+         
+            
+            if totalscore > bestScore {
+                bestScore = totalscore
                 bestScoreLabelNode.text = "Best Score:\(bestScore)"
                 userDefaults.set(bestScore, forKey: "BEST")
                 userDefaults.synchronize()
             }
+          //アイテム取得
         } else if (contact.bodyA.categoryBitMask & itemscoreCategory) == itemscoreCategory || (contact.bodyB.categoryBitMask & itemscoreCategory) == itemscoreCategory {
-            //アイテム取得
-           
-            
-            //音
-            let itemsound = SKAction.playSoundFileNamed("itemsound.mp3", waitForCompletion: true)
+            //取得音
             self.run(itemsound)
-            
-            
             //取得したアイテムを消す
             if (contact.bodyA.categoryBitMask & itemscoreCategory) == itemscoreCategory {
                 // bodyAがアイテム
-                
                 contact.bodyA.node!.removeFromParent()
             } else {
                 // bodyBがアイテム
                 contact.bodyB.node!.removeFromParent()
             }
-            
-            
-            
             //スコアアップ
-            print("ScoreUp")
-            score += 1
-            scoreLabelNode.text = "Score:\(score)"
+            print("itemScoreUp")
+            itemscore += 1
+            totalscore = itemscore + score
+            itemScoreLabelNode.text = "itemScore:\(itemscore)"
+            totalScoreLabelNode.text = "TotalScore\(totalscore)"
         
             //ベストスコア更新か確認する
             var bestScore = userDefaults.integer(forKey: "BEST")
-            if score > bestScore {
-            bestScore = score
+            if totalscore > bestScore {
+            bestScore = totalscore
             bestScoreLabelNode.text = "Best Score:\(bestScore)"
             userDefaults.set(bestScore, forKey: "BEST")
             userDefaults.synchronize()
@@ -414,13 +419,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             })
         }
  
-        
     }
     
     func restart() {
+        itemscore = 0
+        itemScoreLabelNode.text = "itemScore\(itemscore)"
         score = 0
-        scoreLabelNode.text = "Score:\(score)" 
+        scoreLabelNode.text = "Score:\(score)"
+        totalscore = 0
+        totalScoreLabelNode.text = "TotalScore:\(totalscore)"
 
+        
         bird.position = CGPoint(x: self.frame.size.width * 0.2, y:self.frame.size.height * 0.7)
         bird.physicsBody?.velocity = CGVector.zero
         bird.physicsBody?.collisionBitMask = groundCategory | wallCategory
@@ -433,24 +442,46 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     
     func setupScoreLabel() {
-        score = 0
+        
         scoreLabelNode = SKLabelNode()
         scoreLabelNode.fontColor = UIColor.black
-        scoreLabelNode.position = CGPoint(x: 10, y: self.frame.size.height - 60)
+        scoreLabelNode.position = CGPoint(x: 210, y: self.frame.size.height - 60)
         scoreLabelNode.zPosition = 100 // 一番手前に表示する
         scoreLabelNode.horizontalAlignmentMode = SKLabelHorizontalAlignmentMode.left
         scoreLabelNode.text = "Score:\(score)"
         self.addChild(scoreLabelNode)
 
+       
         bestScoreLabelNode = SKLabelNode()
         bestScoreLabelNode.fontColor = UIColor.black
-        bestScoreLabelNode.position = CGPoint(x: 10, y: self.frame.size.height - 90)
+        bestScoreLabelNode.position = CGPoint(x: 10, y: self.frame.size.height - 60)
         bestScoreLabelNode.zPosition = 100 // 一番手前に表示する
         bestScoreLabelNode.horizontalAlignmentMode = SKLabelHorizontalAlignmentMode.left
 
         let bestScore = userDefaults.integer(forKey: "BEST")
         bestScoreLabelNode.text = "Best Score:\(bestScore)"
         self.addChild(bestScoreLabelNode)
+        
+        
+        
+        itemScoreLabelNode = SKLabelNode()
+        itemScoreLabelNode.fontColor = UIColor.black
+        itemScoreLabelNode.position = CGPoint(x: 210, y: self.frame.size.height - 90)
+        itemScoreLabelNode.zPosition = 100 // 一番手前に表示する
+        itemScoreLabelNode.horizontalAlignmentMode = SKLabelHorizontalAlignmentMode.left
+        itemScoreLabelNode.text = "itemScore:\(itemscore)"
+        self.addChild(itemScoreLabelNode)
+        
+        
+        
+        totalscore = itemscore + score
+        totalScoreLabelNode = SKLabelNode()
+        totalScoreLabelNode.fontColor = UIColor.black
+        totalScoreLabelNode.position = CGPoint(x: 10, y: self.frame.size.height - 90)
+        totalScoreLabelNode.zPosition = 100 // 一番手前に表示する
+        totalScoreLabelNode.horizontalAlignmentMode = SKLabelHorizontalAlignmentMode.left
+        totalScoreLabelNode.text = "TotalScore:\(totalscore)"
+        self.addChild(totalScoreLabelNode)
     }
 
 
